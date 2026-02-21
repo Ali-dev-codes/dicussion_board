@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: db_container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=django_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d django_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: django_container
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://user:pass@db:5432/django_db
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
